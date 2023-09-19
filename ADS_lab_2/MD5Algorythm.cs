@@ -34,20 +34,47 @@ namespace ADS_lab_2
                 { 4, 11, 16, 23 },
                 { 6, 10, 15, 21 }
         };
+        //uint A = 0x67452301;
+        //uint B = 0xEFCDAB89;
+        //uint C = 0x98BADCFE;
+        //uint D = 0x10325476;
 
-        public static string Algorythm(string massege)
+        public static string MakeHashLine(StringBuilder s)
         {
-            uint A = 0x67452301;
-            uint B = 0xEFCDAB89;
-            uint C = 0x98BADCFE;
-            uint D = 0x10325476;
+            uint[] res;
+            if (s.Length > 102_400)
+            {
+                // Робимо розбиття
+                int maxLength = 1_204_000;
 
+                Console.WriteLine(s.Length);
+
+                res = new uint[] { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476 };
+                for (int i = 0; (i * maxLength < s.Length); i++)
+                {
+                    int len = (s.Length < i * maxLength + maxLength) ? (s.Length - (i * maxLength)) : maxLength;
+                    string shortString = s.ToString(i * maxLength, len);
+
+                    res = Algorithm(shortString, res[0], res[1], res[2], res[3]);
+                }
+            }
+            else
+            {
+                // Просто виконуємо наш алгоритм
+                res = Algorithm(s.ToString());
+            }
+
+            return MakeStringFromArrUInt(res);
+        }
+
+        private static uint[] Algorithm(string massege, uint A = 0x67452301, uint B = 0xEFCDAB89, uint C = 0x98BADCFE, uint D = 0x10325476)
+        {
             byte[] paddedMsg = PaddingText(massege);
 
-            for (int i = 0; i < (paddedMsg.Length * 8) / 512; i++)
+            for (int j = 0; j < (paddedMsg.Length * 8) / 512; j++)
             {
                 byte[] tmpMsg = new byte[64];
-                Array.Copy(paddedMsg, 64 * i, tmpMsg, 0, 64);
+                Array.Copy(paddedMsg, 64 * j, tmpMsg, 0, 64);
 
                 uint[] tmpRes = MessageProcessing(A, B, C, D, tmpMsg);
 
@@ -57,7 +84,7 @@ namespace ADS_lab_2
                 D = tmpRes[3];
             }
 
-            return MakeStringFromInt(A) + MakeStringFromInt(B) + MakeStringFromInt(C) + MakeStringFromInt(D);
+            return new uint[] { A, B, C, D };
         }
 
         //Функція виконує доповнення до 512 бітів
@@ -138,6 +165,17 @@ namespace ADS_lab_2
             return (value << count) | (value >> (32 - count));
         }
 
+        private static string MakeStringFromArrUInt(uint[] array)
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+
+            for (int i = 0; i < array.Length; i++)
+            {
+                stringBuilder.Append(MakeStringFromInt(array[i]));
+            }
+
+            return stringBuilder.ToString();
+        }
         private static string MakeStringFromInt(uint value)
         {
             byte[] bytes = BitConverter.GetBytes(value);
@@ -149,7 +187,6 @@ namespace ADS_lab_2
             }
 
             return hexString.ToString();
-            //return string.Join("", BitConverter.GetBytes(value).Select(y => y.ToString("x2")));
         }
     }
 }

@@ -11,12 +11,22 @@ namespace ADS_lab_2
     public class Program
     {
 
+        // Результат роботи програми залежить від кодингу Encoding
+        // Тобто для консолі треба брати:
+        // Латиниця: ASCII, Default, UTF7, UTF8
+        // Українська: нічого (перевіряв відповідно до сайту)
+        // Для файлу:
+        // Латинська: BigEndianUnicode, Unicode
+        // Українська: нічого (перевіряв відповідно до сайту)
+
         private static readonly string inputFilePath = "../../inputFile.txt";
         private static readonly string outputFilePath = "../../outputFile.txt";
 
         static void Main(string[] args)
         {
-            string massage;
+            StringBuilder massage = new StringBuilder();
+            string hashLine;
+
             int variant = 0;
             bool res = false;
 
@@ -34,20 +44,20 @@ namespace ADS_lab_2
             if (variant == 1)
             {
                 Console.WriteLine("Please enter input line");
-                massage = Console.ReadLine();
-            } 
+                massage = new StringBuilder(Console.ReadLine());
+            }
             else if (variant == 2)
             {
-                Console.WriteLine("Data has been picked from the file");                
+                Console.WriteLine("Data has been picked from the file");
                 massage = ReadFile(inputFilePath);
             }
             else
             {
                 Console.WriteLine("Error in program");
-                massage = "";
+                massage = new StringBuilder("");
             }
 
-            string hashLine = MD5Algorythm.Algorythm(massage);
+            hashLine = MD5Algorythm.MakeHashLine(massage);
             Console.WriteLine(hashLine);
 
             variant = 0;
@@ -71,24 +81,47 @@ namespace ADS_lab_2
             }
         }
 
-        public static string ReadFile(string filePath)
+        public static StringBuilder ReadFile(string filePath)
         {
+            StringBuilder content = new StringBuilder();
             try
             {
-                string fileContents = File.ReadAllText(filePath, Encoding.ASCII);
-                return fileContents;
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                using (StreamReader reader = new StreamReader(fileStream, Encoding.ASCII))
+                {
+                    //string line;
+                    //while ((line = reader.ReadLine()) != null)
+                    //{
+                    //    content.Append(line);
+                    //}
+
+                    int character;
+
+                    while ((character = reader.Read()) != -1)
+                    {
+                        char ch = (char)character;
+                        if (ch == '\r')
+                        {
+                            continue;
+                        }
+
+                        content.Append(ch);
+                    }
+                }
             }
-            catch (IOException e)
+            catch (Exception ex)
             {
-                throw new IOException(e.Message);
+                Console.WriteLine("Error during reading file: " + ex.Message);
             }
+
+            return content;
         }
 
         public static void WriteFile(string filePath, string data)
         {
             try
             {
-                File.WriteAllText(filePath, data, Encoding.ASCII);
+                File.WriteAllText(filePath, data, Encoding.Default);
             }
             catch (IOException e)
             {
