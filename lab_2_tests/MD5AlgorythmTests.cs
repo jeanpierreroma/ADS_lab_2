@@ -21,8 +21,8 @@ namespace lab_2_tests
         [TestCase("12345678901234567890123456789012345678901234567890123456789012345678901234567890", ExpectedResult = "57EDF4A22BE3C955AC49DA2E2107B67A")]
         public string MD5AlgorythmTests_Algorythm_ReturnCorrectHash(string massage)
         {
-            StringBuilder m = new StringBuilder(massage);
-            return MD5Algorythm.MakeHashLine(m).ToUpperInvariant();
+            var buffer =  MD5Algorythm.AlgorithmConsole(massage);
+            return MD5Algorythm.MakeStringFromArrUInt(buffer).ToUpperInvariant();
         }
     }
 }

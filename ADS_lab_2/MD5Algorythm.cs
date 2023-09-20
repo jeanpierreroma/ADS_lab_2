@@ -34,41 +34,35 @@ namespace ADS_lab_2
                 { 4, 11, 16, 23 },
                 { 6, 10, 15, 21 }
         };
-        //uint A = 0x67452301;
-        //uint B = 0xEFCDAB89;
-        //uint C = 0x98BADCFE;
-        //uint D = 0x10325476;
+        
 
-        public static string MakeHashLine(StringBuilder s)
+        public static uint[] AlgorithmFile(string massege, uint A = 0x67452301, uint B = 0xEFCDAB89, uint C = 0x98BADCFE, uint D = 0x10325476)
         {
-            uint[] res;
-            if (s.Length > 102_400)
+            byte[] paddedMsg = PaddingText(massege);
+
+            for (int j = 0; j < (paddedMsg.Length * 8) / 512; j++)
             {
-                // Робимо розбиття
-                int maxLength = 1_204_000;
+                byte[] tmpMsg = new byte[64];
+                Array.Copy(paddedMsg, 64 * j, tmpMsg, 0, 64);
 
-                Console.WriteLine(s.Length);
+                uint[] tmpRes = MessageProcessing(A, B, C, D, tmpMsg);
 
-                res = new uint[] { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476 };
-                for (int i = 0; (i * maxLength < s.Length); i++)
-                {
-                    int len = (s.Length < i * maxLength + maxLength) ? (s.Length - (i * maxLength)) : maxLength;
-                    string shortString = s.ToString(i * maxLength, len);
-
-                    res = Algorithm(shortString, res[0], res[1], res[2], res[3]);
-                }
-            }
-            else
-            {
-                // Просто виконуємо наш алгоритм
-                res = Algorithm(s.ToString());
+                A = tmpRes[0];
+                B = tmpRes[1];
+                C = tmpRes[2];
+                D = tmpRes[3];
             }
 
-            return MakeStringFromArrUInt(res);
+            return new uint[] { A, B, C, D };
         }
 
-        private static uint[] Algorithm(string massege, uint A = 0x67452301, uint B = 0xEFCDAB89, uint C = 0x98BADCFE, uint D = 0x10325476)
+        public static uint[] AlgorithmConsole(string massege)
         {
+            uint A = 0x67452301;
+            uint B = 0xEFCDAB89;
+            uint C = 0x98BADCFE;
+            uint D = 0x10325476;
+
             byte[] paddedMsg = PaddingText(massege);
 
             for (int j = 0; j < (paddedMsg.Length * 8) / 512; j++)
@@ -90,7 +84,7 @@ namespace ADS_lab_2
         //Функція виконує доповнення до 512 бітів
         private static byte[] PaddingText(string text)
         {
-            byte[] arrayMessage = Encoding.ASCII.GetBytes(text);
+            byte[] arrayMessage = Encoding.Default.GetBytes(text);
 
             List<byte> paddingMessage = new List<byte>(arrayMessage);
             paddingMessage.Add(0x80);    // Додаємо спочатку 1 (1000_0000)
@@ -165,7 +159,7 @@ namespace ADS_lab_2
             return (value << count) | (value >> (32 - count));
         }
 
-        private static string MakeStringFromArrUInt(uint[] array)
+        public static string MakeStringFromArrUInt(uint[] array)
         {
             StringBuilder stringBuilder = new StringBuilder();
 

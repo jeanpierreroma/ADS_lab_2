@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -19,13 +20,16 @@ namespace ADS_lab_2
         // Латинська: BigEndianUnicode, Unicode
         // Українська: нічого (перевіряв відповідно до сайту)
 
-        private static readonly string inputFilePath = "../../inputFile.txt";
+
+        // Є ідея просто написати новий алгоритм для файлу
+
+        private static readonly string inputFilePath = "../../Luannacaputto.jpg";
         private static readonly string outputFilePath = "../../outputFile.txt";
 
         static void Main(string[] args)
         {
             StringBuilder massage = new StringBuilder();
-            string hashLine;
+            uint[] buffer;
 
             int variant = 0;
             bool res = false;
@@ -45,19 +49,41 @@ namespace ADS_lab_2
             {
                 Console.WriteLine("Please enter input line");
                 massage = new StringBuilder(Console.ReadLine());
+
+                buffer = MD5Algorythm.AlgorithmConsole(massage.ToString());
             }
             else if (variant == 2)
             {
                 Console.WriteLine("Data has been picked from the file");
-                massage = ReadFile(inputFilePath);
+                // Створення екземпляру Stopwatch
+                Stopwatch stopwatch = new Stopwatch();
+
+                // Початок вимірювання часу
+                stopwatch.Start();
+
+                // Виклик функції, яку ви хочете виміряти
+                buffer = ReadFile(inputFilePath);
+
+                // Зупинка вимірювання часу
+                stopwatch.Stop();
+
+                // Отримання часу в мілісекундах
+                long elapsedTimeMilliseconds = stopwatch.ElapsedMilliseconds;
+
+                Console.WriteLine("Час виконання функції: " + elapsedTimeMilliseconds + " мілісекунд");
+
+
+                Console.WriteLine("Success!");
             }
             else
             {
                 Console.WriteLine("Error in program");
                 massage = new StringBuilder("");
+
+                buffer = MD5Algorythm.AlgorithmConsole(massage.ToString());
             }
 
-            hashLine = MD5Algorythm.MakeHashLine(massage);
+            string hashLine = MD5Algorythm.MakeStringFromArrUInt(buffer);
             Console.WriteLine(hashLine);
 
             variant = 0;
@@ -81,32 +107,42 @@ namespace ADS_lab_2
             }
         }
 
-        public static StringBuilder ReadFile(string filePath)
+        public static uint[] ReadFile(string filePath)
         {
-            StringBuilder content = new StringBuilder();
+            uint[] tmp_res = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476 };
             try
             {
                 using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                using (StreamReader reader = new StreamReader(fileStream, Encoding.ASCII))
+                using (StreamReader reader = new StreamReader(fileStream, Encoding.Default))
                 {
-                    //string line;
-                    //while ((line = reader.ReadLine()) != null)
-                    //{
-                    //    content.Append(line);
-                    //}
-
                     int character;
+                    uint counter = 0;
 
+                    StringBuilder content = new StringBuilder();
                     while ((character = reader.Read()) != -1)
                     {
                         char ch = (char)character;
                         if (ch == '\r')
                         {
                             continue;
+                            counter--;
                         }
 
                         content.Append(ch);
+                        counter++;
+
+                        if (counter == 1_204_000)
+                        {
+                            tmp_res = MD5Algorythm.AlgorithmFile(content.ToString(), tmp_res[0], tmp_res[1], tmp_res[2], tmp_res[3]);
+
+                            content.Clear();
+
+                            counter = 0;
+                        }
                     }
+                    tmp_res = MD5Algorythm.AlgorithmFile(content.ToString(), tmp_res[0], tmp_res[1], tmp_res[2], tmp_res[3]);
+
+                    content.Clear();
                 }
             }
             catch (Exception ex)
@@ -114,7 +150,7 @@ namespace ADS_lab_2
                 Console.WriteLine("Error during reading file: " + ex.Message);
             }
 
-            return content;
+            return tmp_res;
         }
 
         public static void WriteFile(string filePath, string data)
