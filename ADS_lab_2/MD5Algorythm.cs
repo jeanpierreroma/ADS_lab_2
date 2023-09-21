@@ -27,45 +27,26 @@ namespace ADS_lab_2
                 0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
         };
 
-        private readonly static int[,] shift = new int[4, 4]
+        private readonly static int[] shift = new int[64]
         {
-                { 7, 12, 17, 22 },
-                { 5, 9, 14, 20 },
-                { 4, 11, 16, 23 },
-                { 6, 10, 15, 21 }
+            7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,  7, 12, 17, 22,
+            5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,  5,  9, 14, 20,
+            4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,  4, 11, 16, 23,
+            6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
         };
-        
 
-        public static uint[] AlgorithmFile(string massege, uint A = 0x67452301, uint B = 0xEFCDAB89, uint C = 0x98BADCFE, uint D = 0x10325476)
-        {
-            byte[] paddedMsg = PaddingText(massege);
-
-            for (int j = 0; j < (paddedMsg.Length * 8) / 512; j++)
-            {
-                byte[] tmpMsg = new byte[64];
-                Array.Copy(paddedMsg, 64 * j, tmpMsg, 0, 64);
-
-                uint[] tmpRes = MessageProcessing(A, B, C, D, tmpMsg);
-
-                A = tmpRes[0];
-                B = tmpRes[1];
-                C = tmpRes[2];
-                D = tmpRes[3];
-            }
-
-            return new uint[] { A, B, C, D };
-        }
-
-        public static uint[] AlgorithmConsole(string massege)
+        public static uint[] Algorithm(byte[] massege)
         {
             uint A = 0x67452301;
             uint B = 0xEFCDAB89;
             uint C = 0x98BADCFE;
             uint D = 0x10325476;
 
+            // Ця функція працює справно
             byte[] paddedMsg = PaddingText(massege);
 
-            for (int j = 0; j < (paddedMsg.Length * 8) / 512; j++)
+            long counter = (paddedMsg.Length * (long)8) / 512;
+            for (long j = 0; j < counter; j++)
             {
                 byte[] tmpMsg = new byte[64];
                 Array.Copy(paddedMsg, 64 * j, tmpMsg, 0, 64);
@@ -77,31 +58,37 @@ namespace ADS_lab_2
                 C = tmpRes[2];
                 D = tmpRes[3];
             }
-
             return new uint[] { A, B, C, D };
         }
 
         //Функція виконує доповнення до 512 бітів
-        private static byte[] PaddingText(string text)
+        private static byte[] PaddingText(byte[] arrayMessage)
         {
-            byte[] arrayMessage = Encoding.Default.GetBytes(text);
+            int originalLength = arrayMessage.Length;
+            int paddingLength = 64 - ((originalLength + 8) % 64);  // 64 біти (8 байтів) для зберігання довжини повідомлення
+            if (paddingLength < 1)
+                paddingLength += 64;
 
-            List<byte> paddingMessage = new List<byte>(arrayMessage);
-            paddingMessage.Add(0x80);    // Додаємо спочатку 1 (1000_0000)
+            int newLength = originalLength + paddingLength + 8;  // Додаємо 8 байтів для зберігання довжини повідомлення
 
-            // Поки довжина менша по модулю, ніж 448 додаємо нулі (0000_0000)
-            while ((paddingMessage.Count * 8) % 512 != 448)
-            {
-                paddingMessage.Add(0x0);
-            }
+            // Створюємо новий масив з належними розмірами
+            byte[] paddedMessage = new byte[newLength];
 
-            // Додаємо останні 8 чисел (64 біти це 8 * 8) = довжина + нулі
-            long arrayMessageLengthBites = arrayMessage.Length * 8;
-            byte[] lengthBytes = BitConverter.GetBytes(arrayMessageLengthBites);
-            paddingMessage.AddRange(lengthBytes);
+            // Копіюємо оригінальне повідомлення в новий масив
+            Array.Copy(arrayMessage, 0, paddedMessage, 0, originalLength);
 
-            return paddingMessage.ToArray();
+            // Додаємо 1 (1000_0000) у кінці оригінального повідомлення
+            paddedMessage[originalLength] = 0x80;
+
+            // Додаємо останні 8 байтів (64 біти) - довжину оригінального повідомлення
+            long arrayMessageLengthBits = (long)originalLength * 8;
+            byte[] lengthBytes = BitConverter.GetBytes(arrayMessageLengthBits);
+
+            Array.Copy(lengthBytes, 0, paddedMessage, newLength - 8, 8);
+
+            return paddedMessage;
         }
+
 
         // Обробка повідомлення 
         private static uint[] MessageProcessing(uint A, uint B, uint C, uint D, byte[] block)
@@ -141,7 +128,7 @@ namespace ADS_lab_2
                 var tmpD = d;
                 d = c;
                 c = b;
-                b = b + CyclicShiftLeft(a + f + miniBlock[p] + T[i], shift[i / 16, i % 4]);
+                b = b + CyclicShiftLeft(a + f + miniBlock[p] + T[i], shift[i]);
                 a = tmpD;
             }
 
