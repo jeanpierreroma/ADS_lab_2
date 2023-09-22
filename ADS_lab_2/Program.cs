@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
@@ -23,9 +24,10 @@ namespace ADS_lab_2
 
         // UTF7 - працює для моїх файлів
 
-        // Є ідея просто написати новий алгоритм для файлу
+        // для inputFile - правильно
+        // для inputFile_ua - правильно
 
-        private static readonly string inputFilePath = "../../test2_21.txt";
+        private static readonly string inputFilePath = "../../test2_2.txt";
         private static readonly string outputFilePath = "../../outputFile.txt";
 
         static void Main(string[] args)
@@ -52,7 +54,9 @@ namespace ADS_lab_2
                 Console.WriteLine("Please enter input line");
                 massage = new StringBuilder(Console.ReadLine());
 
-                byte[] arrayMessage = Encoding.Default.GetBytes(massage.ToString());
+                //byte[] arrayMessage = Encoding.UTF8.GetBytes(massage.ToString());
+                byte[] arrayMessage = Encoding.UTF8.GetBytes("Привіт");
+
 
                 buffer = MD5Algorythm.Algorithm(arrayMessage);
             }
@@ -114,40 +118,76 @@ namespace ADS_lab_2
             try
             {
                 uint counter = 0;
+                StringBuilder sb = new StringBuilder();
 
                 using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF7))
+                using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF8))
                 {
                     int character;
-
                     while ((character = reader.Read()) != -1)
                     {
-                        char deleteVar = (char)character;
-
                         counter++;
+                        sb.Append((char)character);
                     }
+
                 }
+
+                byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
+                tmp_res = MD5Algorythm.Algorithm(buffer);
+
+
 
                 Console.WriteLine(counter);
 
-                using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF7))
-                {
-                    int character;
-                    int i = 0;
+                //using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                //using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF7))
+                //{
+                //    int character;
+
+                //    byte[] buffer = new byte[counter];
+
+                //    int i = 0;
+
+                //    while((character = reader.Read()) != -1)
+                //    {
+                //        //byte[] newBufer = new byte[buffer.Length + 1];
+
+                //        //Array.Copy(buffer, newBufer, buffer.Length);
+
+                //        char ch = (char)character;
+
+                //        byte byteUTF8Array = (byte)ch;
+
+                //        buffer[i] = byteUTF8Array;
+
+                //        i++;
+
+                //        //Array.Copy(new byte[] { byteUTF8Array }, 0, newBufer, buffer.Length, 1);
+
+                //        //buffer = newBufer;
+                //    }
+
+                //    tmp_res = MD5Algorythm.Algorithm(buffer);
+                //}
+
+                //using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                //using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF8))
+                //{
+                //    int character;
+                //    int i = 0;
 
 
-                    byte[] arrayMassage = new byte[counter];
-                    while ((character = reader.Read()) != -1)
-                    {
-                        char deleteVar = (char)character;
+                //    byte[] arrayMassage = new byte[counter];
+                //    while ((character = reader.Read()) != -1)
+                //    {
+                //        char deleteVar = (char)character;
 
-                        arrayMassage[i] = (byte)character;
-                        i++;
-                    }
+                //        //arrayMassage[i] = (byte)character;
+                //        //i++;
+                //    }
 
-                    tmp_res = MD5Algorythm.Algorithm(arrayMassage);
-                }
+                //    tmp_res = MD5Algorythm.Algorithm(arrayMassage);
+                //}
             }
             catch (Exception ex)
             {
