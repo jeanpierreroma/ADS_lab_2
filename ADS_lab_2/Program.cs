@@ -4,6 +4,8 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +29,10 @@ namespace ADS_lab_2
         // для inputFile - правильно
         // для inputFile_ua - правильно
 
-        private static readonly string inputFilePath = "../../test2_2.txt";
+        // Нарешті пройшло на 600 мБ
+        // Порівняти файли buffer на розмір та на відповідність
+
+        private static readonly string inputFilePath = "../../test2.dat";
         private static readonly string outputFilePath = "../../outputFile.txt";
 
         static void Main(string[] args)
@@ -36,8 +41,8 @@ namespace ADS_lab_2
             uint[] buffer;
 
             int variant = 0;
-            bool res = false;
-
+            bool res = false;    
+           
             while (!res)
             {
                 Console.WriteLine("Choose input string: console or file 1 or 2");
@@ -54,27 +59,18 @@ namespace ADS_lab_2
                 Console.WriteLine("Please enter input line");
                 massage = new StringBuilder(Console.ReadLine());
 
-                //byte[] arrayMessage = Encoding.UTF8.GetBytes(massage.ToString());
-                byte[] arrayMessage = Encoding.UTF8.GetBytes("Привіт");
-
+                byte[] arrayMessage = Encoding.UTF8.GetBytes(massage.ToString());
 
                 buffer = MD5Algorythm.Algorithm(arrayMessage);
             }
             else if (variant == 2)
             {
                 Console.WriteLine("Data has been picked from the file");
-                //Stopwatch stopwatch = new Stopwatch();
 
-                //stopwatch.Start();
+                byte[] fileContent;
+                var size = ReadFile(inputFilePath, out fileContent);
 
-                buffer = ReadFile(inputFilePath);
-
-                //stopwatch.Stop();
-
-                //long elapsedTimeMilliseconds = stopwatch.ElapsedMilliseconds;
-
-                //Console.WriteLine("Час виконання функції: " + elapsedTimeMilliseconds + " мілісекунд");
-
+                buffer = MD5Algorythm.Algorithm(fileContent, true, size);
 
                 Console.WriteLine("Success!");
             }
@@ -112,89 +108,75 @@ namespace ADS_lab_2
             }
         }
 
-        public static uint[] ReadFile(string filePath)
+        public static ulong ReadFile(string filePath, out byte[] content)
         {
-            uint[] tmp_res = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476 };
+            content = null;
+            ulong counter = 0;
+
             try
             {
-                uint counter = 0;
-                StringBuilder sb = new StringBuilder();
-
                 using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF8))
                 {
                     int character;
                     while ((character = reader.Read()) != -1)
                     {
-                        counter++;
-                        sb.Append((char)character);
+                        counter += (ulong)Encoding.UTF8.GetBytes(new char[] { (char)character }).Length;
                     }
 
                 }
 
-                byte[] buffer = Encoding.UTF8.GetBytes(sb.ToString());
-                tmp_res = MD5Algorythm.Algorithm(buffer);
+                // Заради продуктивності зробимо одну хуйню
+                ulong paddingLength = 64 - ((counter + 8) % 64);  // 64 біти (8 байтів) для зберігання довжини повідомлення
+                if (paddingLength < 1)
+                    paddingLength += 64;
 
+                ulong newLength = counter + paddingLength + 8;  // Додаємо 8 байтів для зберігання довжини повідомлення
 
+                Console.WriteLine(newLength);
 
-                Console.WriteLine(counter);
+                content = new byte[newLength];
 
-                //using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                //using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF7))
-                //{
-                //    int character;
+                using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
+                using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF8))
+                {
+                    ulong destinationIndex = 0;
 
-                //    byte[] buffer = new byte[counter];
+                    int character;
+                    while ((character = reader.Read()) != -1)
+                    {
+                        var bytes = Encoding.UTF8.GetBytes(new char[] { (char)character });
 
-                //    int i = 0;
+                        ArrayCopy(bytes, 0, content, destinationIndex, (ulong)bytes.Length);
+                        destinationIndex += (ulong)bytes.Length;
+                    }
+                }
 
-                //    while((character = reader.Read()) != -1)
-                //    {
-                //        //byte[] newBufer = new byte[buffer.Length + 1];
+                ////////////////////////////////////////////////////////
 
-                //        //Array.Copy(buffer, newBufer, buffer.Length);
-
-                //        char ch = (char)character;
-
-                //        byte byteUTF8Array = (byte)ch;
-
-                //        buffer[i] = byteUTF8Array;
-
-                //        i++;
-
-                //        //Array.Copy(new byte[] { byteUTF8Array }, 0, newBufer, buffer.Length, 1);
-
-                //        //buffer = newBufer;
-                //    }
-
-                //    tmp_res = MD5Algorythm.Algorithm(buffer);
-                //}
+                //uint counter = 0;
+                //StringBuilder sb = new StringBuilder();
 
                 //using (FileStream fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 //using (StreamReader reader = new StreamReader(fileStream, Encoding.UTF8))
                 //{
                 //    int character;
-                //    int i = 0;
-
-
-                //    byte[] arrayMassage = new byte[counter];
                 //    while ((character = reader.Read()) != -1)
                 //    {
-                //        char deleteVar = (char)character;
-
-                //        //arrayMassage[i] = (byte)character;
-                //        //i++;
+                //        counter++;
+                //        sb.Append((char)character);
                 //    }
 
-                //    tmp_res = MD5Algorythm.Algorithm(arrayMassage);
                 //}
+
+                //buffer = Encoding.UTF8.GetBytes(sb.ToString());
             }
             catch (Exception ex)
             {
                 Console.WriteLine("Error during reading file: " + ex.Message);
             }
 
-            return tmp_res;
+            return counter;
         }
 
         public static void WriteFile(string filePath, string data)
@@ -209,29 +191,13 @@ namespace ADS_lab_2
             }
         }
 
-
-
-        public static byte[] Remove45After43(byte[] inputArray)
+        public static void ArrayCopy(byte[] arraySource, ulong sourceIndex, byte[] arrayDestination, ulong destinationIndex, ulong length)
         {
-            if (inputArray == null || inputArray.Length == 0)
-                return inputArray;
-
-            var result = new byte[inputArray.Length];
-            int currentIndex = 0;
-            bool previousWas43 = false;
-
-            for (int i = 0; i < inputArray.Length; i++)
+            for (ulong i = sourceIndex; i < length; i++)
             {
-                if (i == 0 || inputArray[i] != 45 || !previousWas43)
-                {
-                    result[currentIndex] = inputArray[i];
-                    currentIndex++;
-                    previousWas43 = (inputArray[i] == 43);
-                }
+                arrayDestination[destinationIndex] = arraySource[i];
+                destinationIndex++;
             }
-
-            Array.Resize(ref result, currentIndex);
-            return result;
         }
     }
 }
