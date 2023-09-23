@@ -35,24 +35,64 @@ namespace ADS_lab_2
             6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21,  6, 10, 15, 21
         };
 
-        public static uint[] Algorithm(byte[] massege, bool ifFile = false, ulong originalSize = 0)
+
+
+        public static uint[] Algorithm(byte[] massege, bool isBigFile = false)
         {
             uint A = 0x67452301;
             uint B = 0xEFCDAB89;
             uint C = 0x98BADCFE;
             uint D = 0x10325476;
 
-            // Ось тут воно падає
-            if (ifFile)
-            {
-                massege = PaddingText(massege, originalSize);
-            }
-            else
+            if (!isBigFile)
             {
                 massege = PaddingText(massege);
             }
 
-            long counter = (massege.Length * (long)8) / 512;
+            uint counter;
+            if (isBigFile)
+            {
+                counter = (uint) Math.Ceiling((massege.Length * (uint)8 * 1.0) / 512);
+            }
+            else
+            {
+                counter = (uint)(massege.Length * (uint)8 / 512);
+            }
+            for (uint j = 0; j < counter; j++)
+            {
+                byte[] tmpMsg = new byte[64];
+                Array.Copy(massege, 64 * j, tmpMsg, 0, 64);
+
+                uint[] tmpRes = MessageProcessing(A, B, C, D, tmpMsg);
+
+                A = tmpRes[0];
+                B = tmpRes[1];
+                C = tmpRes[2];
+                D = tmpRes[3];
+            }
+            return new uint[] { A, B, C, D };
+        }
+        public static uint[] Algorithm(byte[] massege, uint[] previousResult, bool isBigFile = false)
+        {
+            uint A = previousResult[0];
+            uint B = previousResult[1];
+            uint C = previousResult[2];
+            uint D = previousResult[3];
+
+            if (!isBigFile)
+            {
+                massege = PaddingText(massege);
+            }
+
+            uint counter;
+            if (isBigFile)
+            {
+                counter = (uint)Math.Ceiling((massege.Length * (uint)8 * 1.0) / 512);
+            }
+            else
+            {
+                counter = (uint)(massege.Length * (uint)8 / 512);
+            }
             for (long j = 0; j < counter; j++)
             {
                 byte[] tmpMsg = new byte[64];
@@ -94,19 +134,6 @@ namespace ADS_lab_2
             Array.Copy(lengthBytes, 0, paddedMessage, newLength - 8, 8);
 
             return paddedMessage;
-        }
-        private static byte[] PaddingText(byte[] arrayMessage, ulong originalLength)
-        {
-            // Додаємо 1 (1000_0000) у кінці оригінального повідомлення
-            arrayMessage[originalLength] = 0x80;
-
-            // Додаємо останні 8 байтів (64 біти) - довжину оригінального повідомлення
-            long arrayMessageLengthBits = (long)originalLength * 8;
-            byte[] lengthBytes = BitConverter.GetBytes(arrayMessageLengthBits);
-
-            Array.Copy(lengthBytes, 0, arrayMessage, arrayMessage.Length - 8, 8);
-
-            return arrayMessage;
         }
 
         // Обробка повідомлення 
