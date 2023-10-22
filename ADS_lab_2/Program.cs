@@ -8,7 +8,7 @@ namespace ADS_lab_2
 {
     public class Program
     {
-        private static readonly string inputFilePath = "../../output.txt";
+        private static readonly string inputFilePath = "../../test2GB.dat";
         private static readonly string outputFilePath = "../../outputFile.txt";
 
         static void Main(string[] args)
